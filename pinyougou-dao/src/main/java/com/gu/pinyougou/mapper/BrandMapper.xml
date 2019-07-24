@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.gu.pinyougou.mapper.BrandMapper">
+    <resultMap id="BaseResultMap" type="com.gu.pinyougou.entity.Brand">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="first_char" property="firstChar" jdbcType="VARCHAR"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+    id, name, first_char
+  </sql>
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select
+        <include refid="Base_Column_List"/>
+        from tb_brand
+        where id = #{id,jdbcType=BIGINT}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+    delete from tb_brand
+    where id = #{id,jdbcType=BIGINT}
+  </delete>
+    <insert id="insert" parameterType="com.gu.pinyougou.entity.Brand">
+    insert into tb_brand (id, name, first_char
+      )
+    values (#{id,jdbcType=BIGINT}, #{name,jdbcType=VARCHAR}, #{firstChar,jdbcType=VARCHAR}
+      )
+  </insert>
+    <insert id="insertSelective" parameterType="com.gu.pinyougou.entity.Brand" useGeneratedKeys="true" keyProperty="id">
+        insert into tb_brand
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="name != null">
+                name,
+            </if>
+            <if test="firstChar != null">
+                first_char,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=BIGINT},
+            </if>
+            <if test="name != null">
+                #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="firstChar != null">
+                #{firstChar,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective" parameterType="com.gu.pinyougou.entity.Brand">
+        update tb_brand
+        <set>
+            <if test="name != null">
+                name = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="firstChar != null">
+                first_char = #{firstChar,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=BIGINT}
+    </update>
+    <update id="updateByPrimaryKey" parameterType="com.gu.pinyougou.entity.Brand">
+    update tb_brand
+    set name = #{name,jdbcType=VARCHAR},
+      first_char = #{firstChar,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+    <select id="findAll" resultMap="BaseResultMap" parameterType="brand">
+        select * from tb_brand
+        <where>
+            <if test="name != null and name.length > 0">
+                name like CONCAT('%',#{name},'%')
+            </if>
+            <if test="firstChar != null and firstChar.length > 0">
+                and upper(first_char) = upper(#{firstChar})
+            </if>
+        </where>
+    </select>
+    <delete id="deleteByIds" parameterType="Integer[]">
+        delete from tb_brand where id in
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <foreach collection="ids" item="id">
+                #{id},
+            </foreach>
+        </trim>
+    </delete>
+    <select id="findBrandAllForTypeTemplate" resultType="map">
+        select id,name as text from tb_brand
+    </select>
+</mapper>

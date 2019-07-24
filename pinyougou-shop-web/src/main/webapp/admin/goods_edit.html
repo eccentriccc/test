@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- 页面meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>商品编辑</title>
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" name="viewport">
+
+    <link rel="stylesheet" href="../plugins/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../plugins/adminLTE/css/AdminLTE.css">
+    <link rel="stylesheet" href="../plugins/adminLTE/css/skins/_all-skins.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../plugins/jQuery/jquery-2.2.3.min.js"></script>
+    <script src="../plugins/bootstrap/js/bootstrap.min.js"></script>
+    <script src="../plugins/angularjs/angular.min.js"></script>
+
+    <!-- 富文本编辑器 -->
+    <link rel="stylesheet" href="../plugins/kindeditor/themes/default/default.css"/>
+    <script charset="utf-8" src="../plugins/kindeditor/kindeditor-min.js"></script>
+    <script charset="utf-8" src="../plugins/kindeditor/lang/zh_CN.js"></script>
+
+    <!-- 正文区域 /-->
+    <script type="text/javascript">
+
+        var editor;
+        KindEditor.ready(function (K) {
+            editor = K.create('textarea[name="content"]', {
+                allowFileManager: true
+            });
+        });
+
+    </script>
+    <script type="text/javascript">
+        var app = angular.module("myApp", []);
+        app.controller("for", function ($scope, $http) {
+            $scope.entity = {
+                goodsDesc: {
+                    itemImages: [],
+                    customAttributeItems: [],
+                    specificationItems: []
+                },
+                goods: {}
+            };
+            $scope.saveOrUpdate = function () {
+                $scope.entity.goodsDesc.customAttributeItems = JSON.stringify($scope.customAttributeItems);
+                $scope.entity.goodsDesc.itemImages = JSON.stringify($scope.entity.goodsDesc.itemImages);
+                $scope.entity.goodsDesc.introduction = editor.html();
+                $http.post("/rest/Goods/saveOrUpdate/", $scope.entity).success(function (data) {
+                    if (data == "true") {
+                        alert("添加成功")
+                        window.location.reload();
+                    } else {
+                        alert("网络繁忙，请重试。")
+                        window.location.reload();
+                    }
+                });
+            };
+            $scope.doUpdate = function (Goods) {
+                $scope.entity = Goods;
+            };
+            $scope.delete = function () {
+                var ids = "";
+                $(":checkbox:not(:first):checked").each(function () {
+                    ids += $(this).val() + ",";
+                });
+                if (ids == "" || ids.length <= 0) {
+                    alert("请选择!");
+                    return;
+                }
+                ids = ids.substring(0, ids.length - 1);
+                var dataJson = "[" + ids + "]"
+                $http.post("/rest/Goods/delete/", dataJson).success(function (data) {
+                    window.location.reload();
+                })
+            };
+            $scope.doDelete = function () {
+                $(":checkbox:not(:first)").each(function () {
+                    if ($(this).is(":checked")) {
+                        $(this).prop("checked", false);
+                    } else {
+                        $(this).prop("checked", true);
+                    }
+                })
+            };
+            $scope.searchGoods = function () {
+                if ($scope.search != null) {
+                    $http.post("/rest/Goods/partPage/" + $scope.paginationConf.currentPage + "/" + $scope.paginationConf.itemsPerPage, $scope.search).success(function (data) {
+                        $scope.list = data.rows;
+                        $scope.paginationConf.totalItems = data.total;
+                    });//重新加载
+                } else {
+                    $http.get("/rest/Goods/partPage/" + $scope.paginationConf.currentPage + "/" + $scope.paginationConf.itemsPerPage).success(function (data) {
+                        $scope.list = data.rows;
+                        $scope.paginationConf.totalItems = data.total;
+                    });//重新加载
+                }
+            };
+            /***************************************************************************************************
+             *                                      下拉框--start                                               *
+             ***************************************************************************************************/
+            $scope.loadOneSelect = function (id) {
+                $http.get("/rest/Goods/loadSelect/" + id).success(function (data) {
+                    $scope.OneSelect = data;
+                })
+            };
+            $scope.$watch("entity.goods.category1Id", function (newValue, oldValue) {
+                $http.get("/rest/Goods/loadSelect/" + newValue).success(function (data) {
+                    $scope.TwoSelect = data;
+                })
+            });
+            $scope.$watch("entity.goods.category2Id", function (newValue, oldValue) {
+                $http.get("/rest/Goods/loadSelect/" + newValue).success(function (data) {
+                    $scope.ThreeSelect = data;
+                });
+            });
+            $scope.$watch("entity.goods.category3Id", function (newValue, oldValue) {
+                var selectData = $scope.ThreeSelect;
+                for (var i = 0; i < selectData.length; i++) {
+                    if (selectData[i].id = newValue) {
+                        $scope.entity.goods.typeTemplateId = selectData[i].typeId;
+                    }
+                }
+            });
+            $scope.$watch("entity.goods.typeTemplateId", function (newValue, oldValue) {
+                $http.post("/rest/Goods/findTypeById/" + newValue).success(function (data) {
+                    $scope.brands = JSON.parse(data.typeTemplate.brandIds);
+                    $scope.customAttributeItems = JSON.parse(data.typeTemplate.customAttributeItems);
+                    $scope.specs = data.specs;
+                });
+            });
+            /***************************************************************************************************
+             *                                      下拉框--end                                                 *
+             ***************************************************************************************************/
+            /***************************************************************************************************
+             *                                      图片上传--start                                             *
+             ***************************************************************************************************/
+            $scope.fileUpload = function () {
+                var formData = new FormData();
+                formData.append("file", uploadFile.files[0]);
+                $http({
+                    method: 'POST',
+                    url: "/upload.do",
+                    data: formData,
+                    headers: {'Content-Type': undefined},
+                    transformRequest: angular.identity
+                }).success(function (data) {
+                    $scope.imageMessage.url = data;
+                });
+
+            };
+            $scope.doImgSave = function () {
+                $scope.imageMessage = {};
+                $('#uploadFile').val("");
+            };
+            $scope.saveImg = function () {
+                $scope.entity.goodsDesc.itemImages.push($scope.imageMessage);
+            };
+            $scope.deleteImg = function (index) {
+                $scope.entity.goodsDesc.itemImages.splice(index, 1);
+            };
+            /***************************************************************************************************
+             *                                      图片上传--end                                               *
+             ***************************************************************************************************/
+            /***************************************************************************************************
+             *                                      规格选项--start                                             *
+             ***************************************************************************************************/
+            $scope.operate = function ($event, attrKey, attrValue) {
+                var dataArray = null;
+                for (var i = 0; i < $scope.entity.goodsDesc.specificationItems.length; i++) {
+                    if ($scope.entity.goodsDesc.specificationItems[i].attributeName == attrKey) {
+                        dataArray = $scope.entity.goodsDesc.specificationItems[i];
+                        break;
+                    }
+                }
+                if (dataArray == null) {
+                    $scope.entity.goodsDesc.specificationItems.push({
+                        attributeName: attrKey,
+                        attributeValue: [attrValue]
+                    });
+                } else {
+                    if ($event.target.checked) {
+                        dataArray.attributeValue.push(attrValue);
+                    } else {
+                        dataArray.attributeValue.splice(dataArray.attributeValue.indexOf(attrValue), 1);
+                        if (dataArray.attributeValue.length == 0) {
+                            $scope.entity.goodsDesc.specificationItems.splice($scope.entity.goodsDesc.specificationItems.indexOf(dataArray), 1);
+                        }
+                    }
+                }
+            }
+            /***************************************************************************************************
+             *                                      规格选项--end                                               *
+             ***************************************************************************************************/
+            /***************************************************************************************************
+             *                                      规格列表--start                                               *
+             ***************************************************************************************************/
+            $scope.createList = function () {
+                $scope.entity.itemList = [{spec: {}, price: 0, num: 99999, status: '0', isDefault: '0'}];
+                var data = $scope.entity.goodsDesc.specificationItems;
+                for (var i = 0; i < data.length; i++) {
+                    var cloenList = [];
+                    for (var j = 0; j < $scope.entity.itemList.length; j++) {//遍历行
+                        for (var k = 0; k < data[i].attributeValue.length; k++) {//遍历列（value=3g，2g）
+                            //克隆一行
+                            var newRow = JSON.parse(JSON.stringify($scope.entity.itemList[j]));
+                            newRow.spec[data[i].attributeName] = data[i].attributeValue[k];
+                            cloenList.push(newRow);
+                        }
+                    }
+                    $scope.entity.itemList = cloenList;
+                }
+            }
+            /***************************************************************************************************
+             *                                      规格列表--end                                               *
+             ***************************************************************************************************/
+        })
+    </script>
+
+
+</head>
+
+<body class="hold-transition skin-red sidebar-mini" ng-app="myApp" ng-controller="for" ng-init="loadOneSelect(0)">
+
+<!-- 正文区域 -->
+<section class="content">
+
+    <div class="box-body">
+
+        <!--tab页-->
+        <div class="nav-tabs-custom">
+
+            <!--tab头-->
+            <ul class="nav nav-tabs">
+                <li class="active">
+                    <a href="#home" data-toggle="tab">商品基本信息</a>
+                </li>
+                <li>
+                    <a href="#pic_upload" data-toggle="tab">商品图片</a>
+                </li>
+                <li>
+                    <a href="#customAttribute" data-toggle="tab">扩展属性</a>
+                </li>
+                <li>
+                    <a href="#spec" data-toggle="tab">规格</a>
+                </li>
+            </ul>
+            <!--tab头/-->
+
+            <!--tab内容-->
+            <div class="tab-content">
+
+                <!--表单内容-->
+                <div class="tab-pane active" id="home">
+                    <div class="row data-type">
+                        <div class="col-md-2 title">商品分类</div>
+
+                        <div class="col-md-10 data">
+                            <table>
+                                <tr>
+                                    <td>
+                                        <select class="form-control" ng-model="entity.goods.category1Id"
+                                                ng-options="item.id as item.name  for item in OneSelect"
+                                                ng-init="-请选择-">
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-control select-sm" ng-model="entity.goods.category2Id"
+                                                ng-options="item.id as item.name  for item in  TwoSelect"
+                                                ng-init="-请选择-"></select>
+                                    </td>
+                                    <td>
+                                        <select class="form-control select-sm" ng-model="entity.goods.category3Id"
+                                                ng-options="item.id as item.name  for item in  ThreeSelect"
+                                                ng-init="-请选择-"></select>
+                                    </td>
+                                    <td>
+                                        模板ID:{{entity.goods.typeTemplateId}}
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </div>
+
+
+                        <div class="col-md-2 title">商品名称</div>
+                        <div class="col-md-10 data">
+                            <input type="text" class="form-control" ng-model="entity.goods.goodsName" placeholder="商品名称"
+                                   value="">
+                        </div>
+
+                        <div class="col-md-2 title">品牌</div>
+                        <div class="col-md-10 data">
+                            <select class="form-control" ng-model="entity.goods.brandId"
+                                    ng-options="brand.id as brand.text for brand in brands"></select>
+                        </div>
+
+                        <div class="col-md-2 title">副标题</div>
+                        <div class="col-md-10 data">
+                            <input type="text" class="form-control" ng-model="entity.goods.caption" placeholder="副标题"
+                                   value="">
+                        </div>
+
+                        <div class="col-md-2 title">价格</div>
+                        <div class="col-md-10 data">
+                            <div class="input-group">
+                                <span class="input-group-addon">¥</span>
+                                <input type="text" class="form-control" ng-model="entity.goods.price" placeholder="价格"
+                                       value="">
+                            </div>
+                        </div>
+
+                        <div class="col-md-2 title editer">商品介绍</div>
+                        <div class="col-md-10 data editer">
+                            <textarea name="content" style="width:800px;height:400px;visibility:hidden;"></textarea>
+                        </div>
+
+                        <div class="col-md-2 title rowHeight2x">包装列表</div>
+                        <div class="col-md-10 data rowHeight2x">
+
+                            <textarea rows="4" class="form-control" ng-model="entity.goodsDesc.packageList"
+                                      placeholder="包装列表"></textarea>
+                        </div>
+
+                        <div class="col-md-2 title rowHeight2x">售后服务</div>
+                        <div class="col-md-10 data rowHeight2x">
+                            <textarea rows="4" class="form-control" ng-model="entity.goodsDesc.saleService"
+                                      placeholder="售后服务"></textarea>
+                        </div>
+
+
+                    </div>
+                </div>
+
+                <!--图片上传-->
+                <div class="tab-pane" id="pic_upload">
+                    <div class="row data-type">
+                        <!-- 颜色图片 -->
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-default" ng-click="doImgSave()" title="新建"
+                                    data-target="#uploadModal" data-toggle="modal"><i class="fa fa-file-o"></i> 新建
+                            </button>
+
+                        </div>
+
+                        <table class="table table-bordered table-striped table-hover dataTable">
+                            <thead>
+                            <tr>
+
+                                <th class="sorting">颜色</th>
+                                <th class="sorting">图片</th>
+                                <th class="sorting">操作</th>
+                            </thead>
+                            <tbody>
+                            <tr ng-repeat="item in entity.goodsDesc.itemImages  track by $index">
+                                <td>
+                                    {{item.color}}
+                                </td>
+                                <td>
+                                    <img alt="" src="{{item.url}}" width="100px" height="100px">
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-default" ng-click="deleteImg($index)"
+                                            title="删除"><i class="fa fa-trash-o"></i> 删除
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+
+
+                <!--扩展属性-->
+                <div class="tab-pane" id="customAttribute">
+                    <div class="row data-type" ng-repeat="cus in customAttributeItems   track by $index">
+                        <div>
+                            <div class="col-md-2 title">{{cus.text}}</div>
+                            <div class="col-md-10 data">
+                                <input class="form-control" ng-model="cus.value" placeholder="{{cus.text}}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!--规格-->
+                <div class="tab-pane" id="spec">
+                    <div class="row data-type">
+                        <div class="col-md-2 title">是否启用规格</div>
+                        <div class="col-md-10 data">
+                            <input type="checkbox">
+                        </div>
+                    </div>
+                    <p>
+
+                    <div>
+
+                        <div class="row data-type">
+
+                            <div ng-repeat="spec in specs">
+                                <div class="col-md-2 title">{{spec.text}}</div>
+                                <div class="col-md-10 data">
+					                            <span ng-repeat="item in spec.specOption">
+					                            	<input ng-click="operate($event,spec.text,item.optionName);createList()"
+                                                           type="checkbox" value="{{item.optionName}}">{{item.optionName}}&nbsp;&nbsp;&nbsp;
+					                            </span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="row data-type">
+                            <table class="table table-bordered table-striped table-hover dataTable">
+                                <thead>
+                                <tr>
+                                    <th class="sorting" ng-repeat="item in entity.goodsDesc.specificationItems">
+                                        {{item.attributeName}}
+                                    </th>
+                                    <th class="sorting">价格</th>
+                                    <th class="sorting">库存</th>
+                                    <th class="sorting">是否启用</th>
+                                    <th class="sorting">是否默认</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr ng-repeat="item in entity.itemList">
+                                    <td ng-repeat="spe in entity.goodsDesc.specificationItems">
+                                        {{item.spec[spe.attributeName]}}
+                                    </td>
+                                    <td>
+                                        <input class="form-control" ng-model="item.price" placeholder="价格">
+                                    </td>
+                                    <td>
+                                        <input class="form-control" ng-model="item.num" placeholder="库存数量">
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" ng-model="item.status" ng-true-value="1" ng-false-value="0">
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" ng-model="item.isDefault"  ng-true-value="1" ng-false-value="0">
+                                    </td>
+                                </tr>
+
+                                </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+            <!--tab内容/-->
+            <!--表单内容/-->
+
+        </div>
+
+
+    </div>
+    <div class="btn-toolbar list-toolbar">
+        <button class="btn btn-primary" ng-click="saveOrUpdate()"><i class="fa fa-save"></i>保存</button>
+        <button class="btn btn-default">返回列表</button>
+    </div>
+
+</section>
+
+
+<!-- 上传窗口 -->
+<div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h3 id="myModalLabel">上传商品图片</h3>
+            </div>
+            <div class="modal-body">
+
+                <table class="table table-bordered table-striped">
+                    <tr>
+                        <td>颜色</td>
+                        <td><input class="form-control" placeholder="颜色" ng-model="imageMessage.color"></td>
+                    </tr>
+                    <tr>
+                        <td>商品图片</td>
+                        <td>
+                            <table>
+                                <tr>
+                                    <td>
+                                        <input type="file" id="uploadFile"/>
+                                        <button class="btn btn-primary" type="button" ng-click="fileUpload()">
+                                            上传
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <img src="{{imageMessage.url}}" width="200px" height="200px">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" data-dismiss="modal" ng-click="saveImg()" aria-hidden="true">保存</button>
+                <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body>
+
+</html>

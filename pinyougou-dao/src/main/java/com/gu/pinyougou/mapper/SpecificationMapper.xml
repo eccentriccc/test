@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.gu.pinyougou.mapper.SpecificationMapper" >
+  <resultMap id="BaseResultMap" type="com.gu.pinyougou.entity.Specification" >
+    <id column="id" property="id" jdbcType="BIGINT" />
+    <result column="spec_name" property="specName" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, spec_name
+  </sql>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Long" >
+    select 
+    <include refid="Base_Column_List" />
+    from tb_specification
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Long" >
+    delete from tb_specification
+    where id = #{id,jdbcType=BIGINT}
+  </delete>
+  <insert id="insert" parameterType="com.gu.pinyougou.entity.Specification" >
+    insert into tb_specification (id, spec_name)
+    values (#{id,jdbcType=BIGINT}, #{specName,jdbcType=VARCHAR})
+  </insert>
+  <insert id="insertSelective" parameterType="com.gu.pinyougou.entity.Specification" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    insert into tb_specification
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        id,
+      </if>
+      <if test="specName != null" >
+        spec_name,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=BIGINT},
+      </if>
+      <if test="specName != null" >
+        #{specName,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.gu.pinyougou.entity.Specification" >
+    update tb_specification
+    <set >
+      <if test="specName != null" >
+        spec_name = #{specName,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.gu.pinyougou.entity.Specification" >
+    update tb_specification
+    set spec_name = #{specName,jdbcType=VARCHAR}
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+  <select id="findAll" resultMap="BaseResultMap" parameterType="Specification">
+    select * from tb_specification
+    <where>
+      <if test="specName != null and specName.length > 0">
+        and spec_name like concat('%',#{specName},'%')
+      </if>
+    </where>
+  </select>
+  <delete id="deleteByIds" parameterType="Integer[]">
+    delete from tb_specification where id in
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <foreach collection="ids" item="id">
+        #{id},
+      </foreach>
+    </trim>
+  </delete>
+  <select id="findSpecAllForTypeTemplate" resultType="map">
+    select id,spec_name as text from tb_specification
+  </select>
+</mapper>

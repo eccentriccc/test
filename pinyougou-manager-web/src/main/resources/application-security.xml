@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans
+        xmlns="http://www.springframework.org/schema/security"
+        xmlns:beans="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd">
+    <http>
+        <intercept-url pattern="/login.html" access="permitAll()"/>
+        <intercept-url pattern="/**/*.js" access="permitAll()"/>
+        <intercept-url pattern="/**/*.css" access="permitAll()"/>
+        <intercept-url pattern="/**/*.jpg" access="permitAll()"/>
+        <intercept-url pattern="/**/*.png" access="permitAll()"/>
+        <intercept-url pattern="/**/*.ico" access="permitAll()"/>
+        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
+        <form-login login-page="/login.html" default-target-url="/admin/index.html" always-use-default-target="true"/>
+        <logout logout-success-url="/login.html"/>
+        <csrf disabled="true"/>
+        <headers>
+            <frame-options policy="SAMEORIGIN"/>
+        </headers>
+    </http>
+    <authentication-manager>
+        <authentication-provider>
+            <password-encoder ref="myPasswordEncoder"/>
+            <user-service>
+                <user name="gu" authorities="ROLE_USER" password="gu"/>
+            </user-service>
+        </authentication-provider>
+    </authentication-manager>
+    <beans:bean id="myPasswordEncoder" class="com.gu.pinyougou.manager.config.MyPasswordEncoder"/>
+</beans:beans>
